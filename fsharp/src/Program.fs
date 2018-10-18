@@ -11,17 +11,9 @@ open Giraffe
 
 open Handlers
 open Database
-open Models
-open MongoDB.Driver
-
-let mongoCollection:IMongoCollection<Post> = null
 
 let webApp =
     choose [
-        GET >=>
-            choose [
-                route "/" >=> handlePosts
-            ]
         POST >=> 
             choose [
                 route "/posts" >=> getPosts
@@ -54,6 +46,7 @@ let configureApp (app : IApplicationBuilder) =
         .UseGiraffe(webApp)
 
 let configureServices (services : IServiceCollection) =
+    services.AddSingleton(getCollection) |> ignore
     services.AddCors()    |> ignore
     services.AddGiraffe() |> ignore
 

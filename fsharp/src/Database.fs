@@ -1,13 +1,34 @@
 module Database
 
 open Models
-open MongoDB
-open MongoDB.Bson
-open MongoDB.Driver.Linq
 open MongoDB.Driver
+open System.Security.Authentication
 open FSharp.Control.Tasks.V2.ContextInsensitive
 open System
-open System.Linq
+
+
+let private addCredentials(settings: MongoClientSettings) =
+    let identity = new MongoInternalIdentity("secret", "localhost")
+    let evidence = new PasswordEvidence("C2y6yDjf5/R+ob0N8A7Cgv30VRDJIWEHLM+4QDU5DE2nQ9nDuVTqobD4b8mGGyPMbIZnqyMsEcaGQy67XIw/Jw==")
+    settings.Credential <- new MongoCredential("SCRAM-SHA-1", identity, evidence)
+    settings
+
+let private getMongoSettings = 
+    let settings = new MongoClientSettings()
+    settings.Server <- new MongoServerAddress("localhost", 10255)
+    settings.UseSsl <- true
+    settings.SslSettings <- new SslSettings()
+    settings.SslSettings.EnabledSslProtocols <- SslProtocols.Tls12
+    addCredentials settings
+
+let private connectClient = 
+    let settings = getMongoSettings
+    let client = new MongoClient(settings)
+    client.GetDatabase("secret")
+
+let getCollection =
+    let db = connectClient
+    db.GetCollection<Post>("Posts")
 
 let create (collection:IMongoCollection<Post>, model:Post) =
     task{
@@ -35,12 +56,17 @@ let private dist location location2 =
 
     R * c
 
-let search (collection:IMongoCollection<Post>, location:Point, range:float) = 
+let private inRange locationA locationB range = 
+    let distance = dist locationA locationB
+    distance <= range
+
+let search (collection:IMongoCollection<Post>, location:Point, range:float, continuationToken:int) = 
     task {
-        let! results = collection.FindAsync(fun x -> 
-            let distance = dist x.location location
-            distance <= range
-        )
-        
-        return! results.ToListAsync()
+        let! res = collection.FindAsync(fun x -> true)
+        let! prevResults = res.ToListAsync()
+        return prevResults 
+        |> Seq.where(fun x -> inRange x.location location range )
+        |> Seq.skip(continuationToken)
+        |> Seq.truncate(10)
+        |> Seq.toList
     }
