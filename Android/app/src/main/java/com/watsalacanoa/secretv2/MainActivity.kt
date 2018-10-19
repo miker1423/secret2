@@ -4,18 +4,27 @@ import android.os.Bundle
 import android.support.v7.app.AlertDialog
 import android.support.v7.app.AppCompatActivity
 import android.support.v7.widget.Toolbar
-import android.util.Log
 import android.view.*
 import android.widget.*
 
 import com.watsalacanoa.secretv2.adapters.Content
+import com.watsalacanoa.secretv2.models.Post
+import com.watsalacanoa.secretv2.models.PostRequest
+import com.watsalacanoa.secretv2.services.LocationService
+import com.watsalacanoa.secretv2.services.PostService
+import com.watsalacanoa.secretv2.services.VerificarRed
 
 class MainActivity : AppCompatActivity() {
 
     private val elementsArray = ArrayList<String>()
+    private val postService = PostService("http://0.0.0.0:5000")
+    private val verificarRed = VerificarRed()
     private lateinit var adapter : Content
+    private lateinit var locationService : LocationService
 
     override fun onCreate(savedInstanceState: Bundle?) {
+
+        locationService = LocationService(this.applicationContext!!)
 
         super.onCreate(savedInstanceState)
 
@@ -31,6 +40,27 @@ class MainActivity : AppCompatActivity() {
 
         val btnAddElement = findViewById<View>(R.id.btnAddNewElement)
         btnAddElement.setOnClickListener{v -> showDialog(v)}
+
+        getPosts()
+    }
+
+    private fun getPosts(){
+        val location = locationService.getCurrentLocation()
+        val request = PostRequest(location, 10, 0)
+
+        if(!verificarRed.isConnected(this.applicationContext!!)){
+            return
+        }
+
+        val posts = postService.getPosts(request)
+        posts.continueWith {
+            response -> response.result.forEach {
+                post ->
+                    runOnUiThread {
+                        adapter.add(post.postText)
+                }
+            }
+        }
     }
 
     fun showDialog(view:View){
@@ -47,6 +77,25 @@ class MainActivity : AppCompatActivity() {
 
         btnShare.setOnClickListener{
             val txt = mComment.text.toString()
+            val location = locationService.getCurrentLocation()
+            val post = Post(txt, location, "")
+            if(!verificarRed.isConnected(this.applicationContext)){
+                return@setOnClickListener
+            }
+
+            postService.createPost(post).continueWith {
+                result -> if(result.result){
+                    runOnUiThread { adapter.add(txt) }
+                    Toast
+                    .makeText(this.applicationContext, "Uploaded", Toast.LENGTH_SHORT)
+                    .show()
+                }else{
+                    Toast
+                    .makeText(this.applicationContext, "Upload failed", Toast.LENGTH_SHORT)
+                    .show()
+                }
+            }
+
             if(!txt.isEmpty()){
                 runOnUiThread {
                     adapter.add(txt)

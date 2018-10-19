@@ -21,7 +21,7 @@ class PostService (private val defaultUrl: String){
     fun createPost(post: Post): Task<Boolean> {
         val future = TaskCompletionSource<Boolean>()
         val connection = URL("$defaultUrl/posts").openConnection() as HttpURLConnection
-        connection.requestMethod = "POST"
+        connection.requestMethod = "PUT"
         connection.setRequestProperty("Content-Type", "application/json")
         connection.connect()
         val json = gson.toJson(post).toByteArray(Charsets.UTF_8)
