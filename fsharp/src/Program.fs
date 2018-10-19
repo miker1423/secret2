@@ -30,7 +30,7 @@ let errorHandler (ex : Exception) (logger : ILogger) =
     clearResponse >=> setStatusCode 500 >=> text ex.Message
 
 let configureCors (builder : CorsPolicyBuilder) =
-    builder.WithOrigins("http://localhost:8080")
+    builder.WithOrigins("http://0.0.0.0:8080")
            .AllowAnyMethod()
            .AllowAnyHeader()
            |> ignore
@@ -61,6 +61,7 @@ let main _ =
     WebHostBuilder()
         .UseKestrel()
         .UseContentRoot(contentRoot)
+        .UseUrls("http://0.0.0.0:5000")
         .UseIISIntegration()
         .UseWebRoot(webRoot)
         .Configure(Action<IApplicationBuilder> configureApp)
