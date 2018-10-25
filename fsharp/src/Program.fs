@@ -14,6 +14,10 @@ open Database
 
 let webApp =
     choose [
+        GET >=> 
+            choose [
+                route "/" >=> helloWorld
+            ]
         POST >=> 
             choose [
                 route "/posts" >=> getPosts

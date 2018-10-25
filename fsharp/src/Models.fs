@@ -11,4 +11,7 @@ type Post = { id:ObjectId; text:string; location:Point }
 type PostRequest = { location:Point; range:float; continuationToken:int }
 
 [<CLIMutable>]
-type PostResponse = { posts:Post list; continuationToken:int }
+type AndroidPost = { text:string; location:Point }
+
+[<CLIMutable>]
+type PostResponse = { posts:AndroidPost list; continuationToken:int }
