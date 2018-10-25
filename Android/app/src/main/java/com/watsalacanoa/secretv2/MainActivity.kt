@@ -1,5 +1,6 @@
 package com.watsalacanoa.secretv2
 
+import android.os.AsyncTask
 import android.os.Bundle
 import android.support.v7.app.AlertDialog
 import android.support.v7.app.AppCompatActivity
@@ -17,7 +18,7 @@ import com.watsalacanoa.secretv2.services.VerificarRed
 class MainActivity : AppCompatActivity() {
 
     private val elementsArray = ArrayList<String>()
-    private val postService = PostService("http://0.0.0.0:5000")
+    private val postService = PostService("http://10.43.41.187:5000")
     private val verificarRed = VerificarRed()
     private lateinit var adapter : Content
     private lateinit var locationService : LocationService
@@ -44,20 +45,21 @@ class MainActivity : AppCompatActivity() {
         getPosts()
     }
 
-    private fun getPosts(){
+    private fun getPosts() {
         val location = locationService.getCurrentLocation()
-        val request = PostRequest(location, 10, 0)
+        val request = PostRequest(location, 10000000, 0)
 
-        if(!verificarRed.isConnected(this.applicationContext!!)){
+        if (!verificarRed.isConnected(this.applicationContext!!)) {
             return
         }
 
-        val posts = postService.getPosts(request)
-        posts.continueWith {
-            response -> response.result.forEach {
-                post ->
+        AsyncTask.execute {
+            val posts = postService.getPosts(request)
+            posts.continueWith { response ->
+                response.result.forEach { post ->
                     runOnUiThread {
-                        adapter.add(post.postText)
+                        adapter.add(post.text)
+                    }
                 }
             }
         }
@@ -78,29 +80,26 @@ class MainActivity : AppCompatActivity() {
         btnShare.setOnClickListener{
             val txt = mComment.text.toString()
             val location = locationService.getCurrentLocation()
-            val post = Post(txt, location, "")
+            val post = Post(txt, location)
             if(!verificarRed.isConnected(this.applicationContext)){
                 return@setOnClickListener
             }
 
-            postService.createPost(post).continueWith {
-                result -> if(result.result){
+            AsyncTask.execute {
+                postService.createPost(post).continueWith {
+                    result -> if(result.result){
                     runOnUiThread { adapter.add(txt) }
                     Toast
-                    .makeText(this.applicationContext, "Uploaded", Toast.LENGTH_SHORT)
-                    .show()
+                        .makeText(this.applicationContext, "Uploaded", Toast.LENGTH_SHORT)
+                        .show()
                 }else{
                     Toast
-                    .makeText(this.applicationContext, "Upload failed", Toast.LENGTH_SHORT)
-                    .show()
+                        .makeText(this.applicationContext, "Upload failed", Toast.LENGTH_SHORT)
+                        .show()
+                    }
                 }
             }
 
-            if(!txt.isEmpty()){
-                runOnUiThread {
-                    adapter.add(txt)
-                }
-            }
             alert.cancel()
         }
 
