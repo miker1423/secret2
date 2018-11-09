@@ -18,23 +18,25 @@ import com.watsalacanoa.secretv2.services.VerificarRed
 class MainActivity : AppCompatActivity() {
 
     private val elementsArray = ArrayList<String>()
-    private val postService = PostService("http://10.43.41.187:5000")
+    private val postService = PostService("http://10.43.40.32:5000")
     private val verificarRed = VerificarRed()
     private lateinit var adapter : Content
     private lateinit var locationService : LocationService
 
     override fun onCreate(savedInstanceState: Bundle?) {
 
+
         locationService = LocationService(this.applicationContext!!)
 
         super.onCreate(savedInstanceState)
+
 
         adapter = Content(this, elementsArray)
 
         setContentView(R.layout.activity_main)
         val toolbar = findViewById<View>(R.id.toolbar) as Toolbar
         setSupportActionBar(toolbar)
-        supportActionBar?.title = "Tablon"
+        supportActionBar?.hide()
 
         val listView = findViewById<ListView>(R.id.main_listView)
         listView.adapter = adapter
@@ -56,7 +58,7 @@ class MainActivity : AppCompatActivity() {
         AsyncTask.execute {
             val posts = postService.getPosts(request)
             posts.continueWith { response ->
-                response.result.forEach { post ->
+                response.result.reversed().forEach { post ->
                     runOnUiThread {
                         adapter.add(post.text)
                     }
