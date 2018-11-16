@@ -18,7 +18,7 @@ import com.watsalacanoa.secretv2.services.VerificarRed
 class MainActivity : AppCompatActivity() {
 
     private val elementsArray = ArrayList<String>()
-    private val postService = PostService("http://10.43.40.32:5000")
+    private val postService = PostService("http://10.43.95.70:5000")
     private val verificarRed = VerificarRed()
     private lateinit var adapter : Content
     private lateinit var locationService : LocationService
