@@ -6,16 +6,23 @@ open System.Security.Authentication
 open FSharp.Control.Tasks.V2.ContextInsensitive
 open System
 
+let private databaseName = "secret"
+let private collectionName = "Posts"
+let private host = "localhost"
+let private algorithmToUse = "SCRAM-SHA-1"
+let private username = "localhost"
+let private password = "C2y6yDjf5/R+ob0N8A7Cgv30VRDJIWEHLM+4QDU5DE2nQ9nDuVTqobD4b8mGGyPMbIZnqyMsEcaGQy67XIw/Jw=="
+let private port = 10255
 
 let private addCredentials(settings: MongoClientSettings) =
-    let identity = new MongoInternalIdentity("secret", "localhost")
-    let evidence = new PasswordEvidence("C2y6yDjf5/R+ob0N8A7Cgv30VRDJIWEHLM+4QDU5DE2nQ9nDuVTqobD4b8mGGyPMbIZnqyMsEcaGQy67XIw/Jw==")
-    settings.Credential <- new MongoCredential("SCRAM-SHA-1", identity, evidence)
+    let identity = new MongoInternalIdentity(databaseName, username)
+    let evidence = new PasswordEvidence(password)
+    settings.Credential <- new MongoCredential(algorithmToUse, identity, evidence)
     settings
 
 let private getMongoSettings = 
     let settings = new MongoClientSettings()
-    settings.Server <- new MongoServerAddress("localhost", 10255)
+    settings.Server <- new MongoServerAddress(host, port)
     settings.UseSsl <- true
     settings.SslSettings <- new SslSettings()
     settings.SslSettings.EnabledSslProtocols <- SslProtocols.Tls12
@@ -24,11 +31,11 @@ let private getMongoSettings =
 let private connectClient = 
     let settings = getMongoSettings
     let client = new MongoClient(settings)
-    client.GetDatabase("secret")
+    client.GetDatabase(databaseName)
 
 let getCollection =
     let db = connectClient
-    db.GetCollection<Post>("Posts")
+    db.GetCollection<Post>(collectionName)
 
 let create (collection:IMongoCollection<Post>, model:Post) =
     task{
