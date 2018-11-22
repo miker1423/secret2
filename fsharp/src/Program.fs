@@ -11,6 +11,8 @@ open Giraffe
 
 open Handlers
 open Database
+open Analyzer
+open Microsoft.Azure.CognitiveServices.Language.TextAnalytics
 
 let webApp =
     choose [
@@ -39,6 +41,12 @@ let configureCors (builder : CorsPolicyBuilder) =
            .AllowAnyHeader()
            |> ignore
 
+let configureAnalysis (services: IServiceCollection)=
+    let credentials = new ApiKeyServiceClientCredentials("<API_KEY_HERE>")
+    let client = new TextAnalyticsClient(credentials)
+    client.Endpoint <- "https://southcentralus.api.cognitive.microsoft.com/"
+    services.AddSingleton<ITextAnalyticsClient>(client)
+
 let configureApp (app : IApplicationBuilder) =
     let env = app.ApplicationServices.GetService<IHostingEnvironment>()
     (match env.IsDevelopment() with
@@ -50,6 +58,7 @@ let configureApp (app : IApplicationBuilder) =
         .UseGiraffe(webApp)
 
 let configureServices (services : IServiceCollection) =
+    configureAnalysis(services) |> ignore
     services.AddSingleton(getCollection) |> ignore
     services.AddCors()    |> ignore
     services.AddGiraffe() |> ignore

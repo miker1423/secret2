@@ -5,7 +5,7 @@ open MongoDB.Bson
 type Point = { lat:double; long:double }
 
 [<CLIMutable>]
-type Post = { id:ObjectId; text:string; location:Point }
+type Post = { id:ObjectId; text:string; location:Point; score:float }
 
 [<CLIMutable>]
 type PostRequest = { location:Point; range:float; continuationToken:int }

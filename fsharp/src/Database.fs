@@ -66,6 +66,7 @@ let search (collection:IMongoCollection<Post>, location:Point, range:float, cont
         let! prevResults = res.ToListAsync()
         return prevResults 
         |> Seq.where(fun x -> inRange x.location location range )
+        |> Seq.sortByDescending(fun x -> x.score)
         |> Seq.skip(continuationToken)
         |> Seq.truncate(10)
         |> Seq.toList
