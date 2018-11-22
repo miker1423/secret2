@@ -12,6 +12,7 @@
 bin/
 gen/
 out/
+.vs/
 
 # Gradle files
 .gradle/
