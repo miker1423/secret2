@@ -26,6 +26,7 @@
         android:hint="¡Escribe aquí!"
         android:singleLine="false"
         android:textAlignment="center"
+        android:inputType="text"
         android:textSize="18sp" />
 
     <LinearLayout

@@ -1,90 +1,122 @@
 package com.watsalacanoa.secretv2
 
-import android.content.Context
+import android.os.AsyncTask
 import android.os.Bundle
 import android.support.v7.app.AlertDialog
 import android.support.v7.app.AppCompatActivity
 import android.support.v7.widget.Toolbar
-import android.util.Log
 import android.view.*
 import android.widget.*
 
+import com.watsalacanoa.secretv2.adapters.Content
+import com.watsalacanoa.secretv2.models.Post
+import com.watsalacanoa.secretv2.models.PostRequest
+import com.watsalacanoa.secretv2.services.LocationService
+import com.watsalacanoa.secretv2.services.PostService
+import com.watsalacanoa.secretv2.services.VerificarRed
+
 class MainActivity : AppCompatActivity() {
 
-    private class Content(mContext: Context, listElements: ArrayList<String>)
-        : ArrayAdapter<String>(mContext,0, listElements){
-
-        private val inflater = mContext.getSystemService(Context.LAYOUT_INFLATER_SERVICE) as LayoutInflater
-
-        override fun getView(position: Int, convertView: View?,parent: ViewGroup?): View {
-            val element = getItem(position)
-
-            var listItem = convertView
-            if(listItem == null)
-                listItem = inflater.inflate(R.layout.post, parent, false)
-
-            val contentText = listItem!!.findViewById<TextView>(R.id.content)
-            contentText.text = element
-            return listItem
-        }
-    }
+    private val elementsArray = ArrayList<String>()
+    private val postService = PostService("http://10.43.95.70:5000")
+    private val verificarRed = VerificarRed()
+    private lateinit var adapter : Content
+    private lateinit var locationService : LocationService
 
     override fun onCreate(savedInstanceState: Bundle?) {
 
-        val elementsArray = ArrayList<String>()
 
-        elementsArray.add("Holaa")
-        elementsArray.add("Pikachu")
+        locationService = LocationService(this.applicationContext!!)
 
         super.onCreate(savedInstanceState)
+
+
+        adapter = Content(this, elementsArray)
+
         setContentView(R.layout.activity_main)
         val toolbar = findViewById<View>(R.id.toolbar) as Toolbar
         setSupportActionBar(toolbar)
-        supportActionBar?.title = "Tablon"
+        supportActionBar?.hide()
 
         val listView = findViewById<ListView>(R.id.main_listView)
-        listView.adapter = Content(this, elementsArray)
+        listView.adapter = adapter
 
         val btnAddElement = findViewById<View>(R.id.btnAddNewElement)
-        btnAddElement.setOnClickListener{
+        btnAddElement.setOnClickListener{v -> showDialog(v)}
 
-            val mBuilder = AlertDialog.Builder(this)
+        getPosts()
+    }
 
-            val mView = LayoutInflater.from(this).inflate(R.layout.dialog_new_comment, null)
-            val mComment = mView.findViewById<EditText>(R.id.idTextNewComment)
-            val btnShare = mView.findViewById<Button>(R.id.btnShare)
+    private fun getPosts() {
+        val location = locationService.getCurrentLocation()
+        val request = PostRequest(location, 10000000, 0)
 
-            mBuilder.setView(mView)
+        if (!verificarRed.isConnected(this.applicationContext!!)) {
+            return
+        }
 
-            val alert = mBuilder.create()
-            val btnCancel = mView.findViewById<Button>(R.id.btnCancel)
-
-            btnShare.setOnClickListener{
-                if(!mComment.text.isEmpty()){
+        AsyncTask.execute {
+            val posts = postService.getPosts(request)
+            posts.continueWith { response ->
+                response.result.reversed().forEach { post ->
                     runOnUiThread {
-                        elementsArray.add(mComment.text.toString())
+                        adapter.add(post.text)
                     }
-                    alert.cancel()
                 }
             }
-
-            btnCancel.setOnClickListener {
-                alert.cancel()
-            }
-            alert.show()
         }
     }
 
+    fun showDialog(view:View){
+        val mBuilder = AlertDialog.Builder(this)
+
+        val mView = LayoutInflater.from(this).inflate(R.layout.dialog_new_comment, null)
+        val mComment = mView.findViewById<EditText>(R.id.idTextNewComment)
+        val btnShare = mView.findViewById<Button>(R.id.btnShare)
+
+        mBuilder.setView(mView)
+
+        val alert = mBuilder.create()
+        val btnCancel = mView.findViewById<Button>(R.id.btnCancel)
+
+        btnShare.setOnClickListener{
+            val txt = mComment.text.toString()
+            val location = locationService.getCurrentLocation()
+            val post = Post(txt, location)
+            if(!verificarRed.isConnected(this.applicationContext)){
+                return@setOnClickListener
+            }
+
+            AsyncTask.execute {
+                postService.createPost(post).continueWith {
+                    result -> if(result.result){
+                    runOnUiThread { adapter.add(txt) }
+                    Toast
+                        .makeText(this.applicationContext, "Uploaded", Toast.LENGTH_SHORT)
+                        .show()
+                }else{
+                    Toast
+                        .makeText(this.applicationContext, "Upload failed", Toast.LENGTH_SHORT)
+                        .show()
+                    }
+                }
+            }
+
+            alert.cancel()
+        }
+
+        btnCancel.setOnClickListener {
+            alert.cancel()
+        }
+        alert.show()
+    }
+
     override fun onCreateOptionsMenu(menu: Menu): Boolean {
-        // Inflate the menu; this adds items to the action bar if it is present.
         menuInflater.inflate(R.menu.menu_main, menu)
         return true
     }
 
     override fun onOptionsItemSelected(item: MenuItem): Boolean {
-        // Handle action bar item clicks here. The action bar will
-        // automatically handle clicks on the Home/Up button, so long
-        // as you specify a parent activity in AndroidManifest.xml.
         val id = item.itemId
 
         return if (id == R.id.action_settings) {

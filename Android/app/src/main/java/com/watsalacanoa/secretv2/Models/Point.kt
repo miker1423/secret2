@@ -1,4 +1,3 @@
-package com.watsalacanoa.secretv2.Models
+package com.watsalacanoa.secretv2.models
 
-class Point(val lat: Float, val long: Float){
-}
+class Point(val lat: Double, val long: Double)
